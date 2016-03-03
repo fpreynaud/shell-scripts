@@ -1,0 +1,90 @@
+#!/bin/bash
+## Puts files in a trash folder instead of deleting them ##
+action=mv
+alert_threshold=3
+counter=1
+FILES=""
+recursive=true
+prompt=false
+RM_OPTIONS=""
+trash=~/.local/share/Trash/files
+verbose=false
+
+if [ $# -eq 0 ]; then
+	echo "usage : $0 fichier..."
+	exit 1
+fi
+
+if [ ! -d $trash ]; then
+	mkdir -p $trash
+	chmod 700 $trash
+fi
+
+for param; do
+	case $param in
+		-s) action=rm;;
+		-i) prompt=true;
+			RM_OPTIONS="$RM_OPTIONS $param";;
+		-n) recursive=false;;
+		-v) verbose=true;
+			RM_OPTIONS="$RM_OPTIONS $param";;
+
+		#-I is not gonna work as expected for now
+		############################################
+		-*) RM_OPTIONS="$RM_OPTIONS $param";;
+		#if [ $# -gt $alert_threshold ]; then
+			#echo "You are going to remove more than $alert_threshold elements. Are you sure about that ? (default: no) ";
+			#read answer;
+			#case $answer in
+				#y|Y|o|O|yes|Yes|oui|Oui) ;;
+				#*) exit 0;;
+			#esac
+		#fi;;
+		############################################
+		*) FILES="$FILES $param";;
+	esac
+done
+
+if $recursive; then
+	RM_OPTIONS="$RM_OPTIONS -r"
+fi
+
+for file in $FILES; do
+	name=`basename $file`
+
+	if [ ! -e "$file" ]; then
+		echo "Error : $file does not exist."
+	else
+		# Auto-increment file name if it exists in $trash
+		while [ -e $trash/$name$counter ]; do
+			counter=$((counter +1))
+		done
+
+		name=$name$counter
+
+		if $prompt; then
+			echo -n "$0: remove '$file'? "; read answer
+			case $answer in
+				y|Y|o|O|yes|Yes|oui|Oui);;
+				*) continue;;
+			esac
+		fi
+
+		if $verbose; then
+			echo Removing $file
+		fi
+
+		if [ "$action" = "rm" ]; then
+			rm $RM_OPTIONS "$file"
+		else
+			if ! $recursive && [ -d "$file" ]; then
+				echo "Error: $file is a directory and option -n was supplied"
+				continue
+			fi
+
+			mv "$file" $trash/"$name"
+		fi
+	fi
+done
+
+
