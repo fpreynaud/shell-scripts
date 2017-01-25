@@ -1,18 +1,27 @@
 #!/bin/bash
 ## Puts files in a trash folder instead of deleting them ##
 
-delete=false
-recursive=true
-verbose=false
-prompt=false
-alert=false
-
+# Constants #
 trash=~/.local/share/Trash/files
+
+# Switches provided by command-line arguments #
+delete=false # Actually delete the file(s)
+recursive=true # Remove folders or not
+verbose=false # Set verbose output on/off
+prompt=false # Prompt before every removal
+alert=false # Warn before removing more than 3 files
+
+# Other variables #
 optionName=
 argIsValue=false
 FILES=""
 skip=false
 
+# Functions #
+
+# @usage display <text>
+# @param <text>: The text to display
+# @desc Print <text> if verbose mode is on
 display()
 {
 	if $verbose; then
@@ -20,6 +29,9 @@ display()
 	fi
 }
 
+# @usage Prompt <file>
+# @param <file>: The file to remove
+# @desc Prompt the user before removing <file>
 prompt()
 {
 	read -p "Remove $1 ? " answer
@@ -40,14 +52,17 @@ prompt()
 	esac
 }
 
+# Create the trash folder if it does not exist #
 if [ ! -d $trash ]; then
 	mkdir -p $trash
 	chmod 700 $trash
 fi
 
+# Process the command-line arguments #
 for arg in "$@"
 do
 	case $arg in
+		# Short options
 		-*)optionName="$(echo $arg|sed s/"^-"//)";
 			for letter in $(seq 1 ${#optionName})
 			do
@@ -63,6 +78,7 @@ do
 			esac
 			done
 		;;
+		# Files to remove
 		*) FILES="${FILES}$arg "
 		;;
 	esac
@@ -70,6 +86,7 @@ done
 
 nb="$(echo $FILES|wc -w)"
 
+# Display warning if option -I is enabled, and ask for confirmation to proceed #
 if $alert && [ $nb -gt 3 ]; then
 	read -p "You are about to remove $nb files. Continue ? " answer
 	case $answer in
@@ -83,8 +100,10 @@ if $alert && [ $nb -gt 3 ]; then
 	esac
 fi
 
+# Process the files sequentially #
 for file in $FILES
 do
+	# Generate destination name in the trash #
 	timestamp=$(date +%d%m%Y_%T)
 	trashName="$(basename $file)_$timestamp"
 	counter=2
@@ -96,21 +115,25 @@ do
 	done
 
 
+	# Prompt before removal if -i option is active
 	if $prompt; then
 		prompt $file
 		if $skip; then continue; fi
 	fi
 
+	# Raise an error if the current file is a directory and recursion is off (-n active)
 	if [ -d $file ] && ! $recursive; then
 		echo "Error: $file is directory and recursion is off" 1>&2
 		continue
 	fi
 
+	# Actually delete the file if -d is active
 	if $delete; then
 		if ! $recursive; then rm $file; else rm -r $file; fi
 		display "Removed $file"
 		continue
 	fi
 
+	# Perform the move
 	mv $file "$trash/$trashName" && display "Removed $file"
 done
