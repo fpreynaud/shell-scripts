@@ -1,90 +1,116 @@
 #!/bin/bash
 ## Puts files in a trash folder instead of deleting them ##
-action=mv
-alert_threshold=3
-counter=1
-FILES=""
-recursive=true
-prompt=false
-RM_OPTIONS=""
-trash=~/.local/share/Trash/files
-verbose=false
 
-if [ $# -eq 0 ]; then
-	echo "usage : $0 fichier..."
-	exit 1
-fi
+delete=false
+recursive=true
+verbose=false
+prompt=false
+alert=false
+
+trash=~/.local/share/Trash/files
+optionName=
+argIsValue=false
+FILES=""
+skip=false
+
+display()
+{
+	if $verbose; then
+		echo "$*"
+	fi
+}
+
+prompt()
+{
+	read -p "Remove $1 ? " answer
+
+	case $answer in
+		no) display "Skipping $1"; skip=true;;
+		yes) skip=false;;
+		*)
+			while [ $answer != "yes" ] && [ $answer != "no" ]
+			do
+				read -p "Please answer 'yes' or 'no'" answer
+			done
+
+			case $answer in
+				no) display "Skipping $1"; skip=true;;
+				yes) skip=false;;
+			esac
+	esac
+}
 
 if [ ! -d $trash ]; then
 	mkdir -p $trash
 	chmod 700 $trash
 fi
 
-for param; do
-	case $param in
-		-s) action=rm;;
-		-i) prompt=true;
-			RM_OPTIONS="$RM_OPTIONS $param";;
-		-n) recursive=false;;
-		-v) verbose=true;
-			RM_OPTIONS="$RM_OPTIONS $param";;
+for arg in "$@"
+do
+	case $arg in
+		-*)optionName="$(echo $arg|sed s/"^-"//)";
+			for letter in $(seq 1 ${#optionName})
+			do
+				option=$(echo $optionName|cut -c $letter)
 
-		#-I is not gonna work as expected for now
-		############################################
-		-*) RM_OPTIONS="$RM_OPTIONS $param";;
-		#if [ $# -gt $alert_threshold ]; then
-			#echo "You are going to remove more than $alert_threshold elements. Are you sure about that ? (default: no) ";
-			#read answer;
-			#case $answer in
-				#y|Y|o|O|yes|Yes|oui|Oui) ;;
-				#*) exit 0;;
-			#esac
-		#fi;;
-		############################################
-		*) FILES="$FILES $param";;
+				case $option in
+					i) prompt=true;;
+					I) alert=true;;
+					n) recursive=false;;
+					d) delete=true;;
+					v) verbose=true;;
+					*) echo "Invalid option $option" 1>&2;;
+			esac
+			done
+		;;
+		*) FILES="${FILES}$arg "
+		;;
 	esac
 done
 
-if $recursive; then
-	RM_OPTIONS="$RM_OPTIONS -r"
+nb="$(echo $FILES|wc -w)"
+
+if $alert && [ $nb -gt 3 ]; then
+	read -p "You are about to remove $nb files. Continue ? " answer
+	case $answer in
+		no) display "Aborted"; exit;;
+		yes) display "Proceeding...";;
+		*) while [ "$answer" != "yes" ] && [ "$answer" != "no" ]; do read -p "Please answer 'yes' or 'no': "; done;
+			case $answer in
+				no) display "Aborted"; exit;;
+				yes) display "Proceeding...";;
+			esac
+	esac
 fi
 
-for file in $FILES; do
-	name=`basename $file`
+for file in $FILES
+do
+	timestamp=$(date +%d%m%Y_%T)
+	trashName="$(basename $file)_$timestamp"
+	counter=2
 
-	if [ ! -e "$file" ]; then
-		echo "Error : $file does not exist."
-	else
-		# Auto-increment file name if it exists in $trash
-		while [ -e $trash/$name$counter ]; do
-			counter=$((counter +1))
-		done
+	while [ -e $trash/$trashName ]
+	do
+		trashName="$trashName_$counter"
+		counter=$((counter + 1))
+	done
 
-		name=$name$counter
 
-		if $prompt; then
-			echo -n "$0: remove '$file'? "; read answer
-			case $answer in
-				y|Y|o|O|yes|Yes|oui|Oui);;
-				*) continue;;
-			esac
-		fi
-
-		if $verbose; then
-			echo Removing $file
-		fi
-
-		if [ "$action" = "rm" ]; then
-			rm $RM_OPTIONS "$file"
-		else
-			if ! $recursive && [ -d "$file" ]; then
-				echo "Error: $file is a directory and option -n was supplied"
-				continue
-			fi
-
-			mv "$file" $trash/"$name"
-		fi
+	if $prompt; then
+		prompt $file
+		if $skip; then continue; fi
 	fi
+
+	if [ -d $file ] && ! $recursive; then
+		echo "Error: $file is directory and recursion is off" 1>&2
+		continue
+	fi
+
+	if $delete; then
+		if ! $recursive; then rm $file; else rm -r $file; fi
+		display "Removed $file"
+		continue
+	fi
+
+	mv $file "$trash/$trashName" && display "Removed $file"
 done
-
-
