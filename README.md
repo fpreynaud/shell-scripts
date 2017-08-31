@@ -11,3 +11,7 @@ No need to cry anymore when you type something like:
 ## parameter_handling.sh ##
 
 A template for handling command-line arguments, in a more powerful way than what getopt(s) can allow.
+
+## hexa ##
+
+Return the hexadecimal representation of the text passed as input
