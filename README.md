@@ -1,17 +1,12 @@
-# bin #
+# Shell scripts
 
-This repository contains some scripts I like to have available from about anywhere
+This repository contains some scripts I like to have available from anywhere
 
-## rm ##
-Instead of deleting files, this script puts them in a trash folder.
-No need to cry anymore when you type something like:
-`rm my/super/important/project/folder/* uselessfiles.txt` instead of
-`rm my/super/important/project/folder/*uselessfiles.txt`
+## stdlib.sh
 
-## parameter_handling.sh ##
-
-A template for handling command-line arguments, in a more powerful way than what getopt(s) can allow.
-
-## hexa ##
-
-Return the hexadecimal representation of the text passed as input
+Contains handy functions for bash scripting, such as:
+- `min`: get the smallest of 2 numbers
+- `max`: get the largest of 2 numbers
+- `in_array`: checks if a value is in an array
+- `in_map`: checks if a key is present in an associative array
+- `argparse`: parse command-line arguments. Inspired by `fish`'s argparse command
