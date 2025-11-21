@@ -33,3 +33,16 @@ Options:
 
 - Does not manage the permissions or ownership on the specified path. This needs to be done manually
 - Will append share configuration to /etc/samba/smb.conf without checking if it is already present, so beware of duplicates.
+
+## setup_router.sh
+
+The script first prompts the user for a NAT interface and a bridge interface to use, then for an IP address for the bridge interface.
+
+Using this information, it then makes the necessary changes to set a VM to work as a router:
+- Sets an IP address to the bridge interface
+- Adds a route for that interface
+- Enables ip_forward
+- Sets the necessary iptables rules
+
+By default, the NAT interface will be the first interface listed by the command `ip link` that is not the loopback interface, and the bridge interface will be the next one.
+The default IP address for the bridge interface is 192.168.1.2. It can be changed simply by editing the value of the `default_ip` variable
