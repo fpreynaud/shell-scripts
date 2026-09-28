@@ -1,8 +1,22 @@
 #!/bin/bash
 
+mkdir -p $HOME/github_repos $HOME/.local/bin &&
+
 # Swap caps lock and escape
-sudo setkeycodes 3a 1 &&
-sudo setkeycodes 01 58 &&
+sudo echo "[Unit]
+Description=Swap Caps Lock and Escape keys
+
+[Service]
+ExecStart=/home/me/.local/bin/swap_escape_capslock
+
+[Install]
+WantedBy=multi-user.target" > /etc/systemd/system/swap_escape_capslock.service
+
+echo "setkeycodes 3a 1
+setkeycodes 01 58" > $HOME/.local/bin/swap_escape_capslock
+
+sudo systemctl enable swap_escape_capslock
+sudo systemctl start swap_escape_capslock
 
 # Install i3, fish, kitty and docker
 sudo apt update &&
@@ -17,7 +31,6 @@ chsh --shell /usr/bin/fish &&
 sudo chsh --shell /usr/bin/fish &&
 
 orig_dir=$(pwd)
-mkdir -p $HOME/github_repos &&
 cd $HOME/github_repos &&
 
 # Fetch and apply config files
@@ -28,7 +41,7 @@ $HOME/github_repos/config_files/configure &&
 git clone https://fpreynaud@github.com/fpreynaud/contx &&
 cd $HOME/github_repos/contx &&
 sudo $HOME/github_repos/contx/build &&
-
+cp $HOME/github_repos/contx/setup.fish $HOME/.local/bin/audit
 cd $orig_dir &&
 
 exec fish
