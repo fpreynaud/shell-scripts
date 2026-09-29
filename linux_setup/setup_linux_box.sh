@@ -44,4 +44,12 @@ sudo $HOME/github_repos/contx/build &&
 cp $HOME/github_repos/contx/setup.fish $HOME/.local/bin/audit
 cd $orig_dir &&
 
+
+# Dynamic touchpad device search (by partial name)
+device_name=$(xinput list --name-only | grep -i 'touchpad')  
+device_id=$(xinput list --id-only "$device_name")
+
+# Activate natural scrolling on touchpad
+xinput set-prop "$device_id" "libinput Natural Scrolling Enabled" 1
+
 exec fish
